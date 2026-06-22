@@ -1,0 +1,106 @@
+project:
+  name: HFL-SDN-IDS
+  version: 1.0
+  seed: 42
+  additional_seeds: [42, 123, 2024, 3407, 777]
+  device: auto
+  deterministic: true
+
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  split_data: data/splits
+  checkpoints: outputs/checkpoints
+  models: outputs/models
+  logs: outputs/logs
+  metrics: outputs/metrics
+  results_csv: outputs/results_csv
+  figures: outputs/figures
+  tables: outputs/tables
+
+datasets:
+  active: CICIDS2017
+  supported: [CICIDS2017, N_BaIoT, TON_IoT, Edge_IIoTset, UNSW_NB15]
+
+preprocessing:
+  selected_features: 23
+  normalization: standard
+  validation_ratio: 0.10
+  test_ratio: 0.20
+  label_column: auto
+  drop_missing: true
+  max_rows: null
+
+partitioning:
+  method: dirichlet
+  iid:
+    enabled: true
+  non_iid:
+    enabled: true
+    alpha: 0.5
+    alpha_values: [0.3, 0.5]
+    min_samples_per_client: 1
+
+federated:
+  method: HFL-SDN-IDS
+  num_clients: 100
+  num_clusters: 10
+  clients_per_cluster: 10
+  participation_ratio: 0.8
+  global_rounds: 30
+  local_epochs: 5
+  aggregation: hierarchical_weighted_fedavg
+  quantization_bits: 8
+
+training:
+  optimizer: SGD
+  batch_size: 32
+  learning_rate:
+    initial: 0.01
+    minimum: 0.0001
+  scheduler: cosine_annealing
+  loss: cross_entropy
+
+model:
+  architecture: lightweight_feedforward_ids
+  input_features: 23
+  # Exact implementation architecture for reproducibility. The paper states a compact FFN but does not give layer widths.
+  hidden_layers: [64, 32]
+  activation: relu
+  output_activation: softmax
+  dropout: 0.30
+
+energy:
+  kappa: 1.0e-28
+  cpu_frequency: 1.5e9
+  transmission_power: 0.5
+  uplink_rate: 1.0e6
+  cycles_per_mac: 1.0
+
+sdn:
+  enabled: true
+  in_training_enabled: true
+  controller: ryu_simulated
+  emulator: mininet_optional
+  openflow_version: "1.3"
+  detection_threshold: 0.85
+  benign_class_id: auto
+  max_reports_per_round: all
+  flow_rule_timeout: 60
+  report_size_bits: 128
+  actions:
+    ddos: DROP
+    access_violation: REDIRECT
+    unknown_attack: ALERT
+
+checkpointing:
+  save_best: true
+  save_final: true
+  save_every_rounds: 5
+  create_md5: true
+  best_model_name: hfl_sdn_ids_best
+  final_model_name: hfl_sdn_ids_final
+
+export:
+  save_torchscript: true
+  save_md5: true
